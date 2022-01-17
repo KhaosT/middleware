@@ -6,6 +6,9 @@ from middlewared.service import private, Service
 from middlewared.service_exception import MatchNotFound
 from middlewared.utils import osc
 
+if osc.IS_FREEBSD:
+    from bsd import geom
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,9 +27,13 @@ class DiskService(Service):
         if isinstance(pool_id_or_pool, dict):
             topology = pool_id_or_pool["topology"]
         elif isinstance(pool_id_or_pool, str):
+            if osc.IS_FREEBSD:
+                await self.middleware.run_in_thread(geom.scan)
             pool = await self.middleware.call("zfs.pool.query", [["name", "=", pool_id_or_pool]], {"get": True})
             topology = await self.middleware.call("pool.transform_topology", pool["groups"])
         else:
+            if osc.IS_FREEBSD:
+                await self.middleware.run_in_thread(geom.scan)
             pool = await self.middleware.call("pool.get_instance", pool_id_or_pool)
             topology = pool["topology"]
 
